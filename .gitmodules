@@ -1,0 +1,3 @@
+[submodule "resources/all/iso-countries"]
+	path = resources/all/iso-countries
+	url = https://github.com/michaelwittig/node-i18n-iso-countries
