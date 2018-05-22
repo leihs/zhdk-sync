@@ -38,7 +38,7 @@
         (do 
           (when show-progress (progrock/print bar) (flush))
           (if (:dry-run conf)
-            (Thread/sleep 200)
+            (Thread/sleep 50)
             (leihs-api/add-user user conf))
           (recur (rest users) (progrock/tick bar)))
         (do

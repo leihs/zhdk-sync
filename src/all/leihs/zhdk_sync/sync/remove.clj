@@ -23,16 +23,19 @@
     (assert id)
     (assert base-url)
     (assert token)
-    (let [res (http-client/delete
-                (str base-url "/admin/users/" id)
-                {:accept :json
-                 :as :json
-                 :basic-auth [token ""]
-                 :throw-exceptions false})]
-      (case (:status res)
-        409 false
-        204 true
-        (throw (ex-info "Unexpected delete user status" res))))))
+    (if (:dry-run conf)
+      (do (Thread/sleep 50)
+          true)
+      (let [res (http-client/delete
+                  (str base-url "/admin/users/" id)
+                  {:accept :json
+                   :as :json
+                   :basic-auth [token ""]
+                   :throw-exceptions false})]
+        (case (:status res)
+          409 false
+          204 true
+          (throw (ex-info "Unexpected delete user status" res)))))))
 
 (defn disable-user [user conf]
   (let [id (-> user :id presence)
