@@ -1,0 +1,69 @@
+- name: build uberjar
+  delegate_to: localhost
+  shell: |
+    #!/bin/bash
+    set -euxo
+    export PROJECT_DIR='{{playbook_dir}}/..'
+    cd $PROJECT_DIR
+    $PROJECT_DIR/bin/lein do clean, uberjar
+
+- name: create leihs-admin user
+  user:
+    name: '{{leihs_zhdk_sync_user}}'
+    system: yes
+
+- name: create deploy target dir(s)
+  file:
+    path: "{{leihs_zhdk_sync_root_dir}}{{item}}"
+    state: directory
+    recurse: yes
+    owner: '{{leihs_zhdk_sync_user}}'
+    group: root
+    mode: 0750
+  with_items:
+    - ""
+    - '/log'
+
+- name: copy jar 
+  copy:
+    src: '{{playbook_dir}}/../leihs_zhdk-sync.jar'
+    dest: '{{leihs_zhdk_sync_jar_path}}'
+    owner: '{{leihs_zhdk_sync_user}}'
+    group: root
+
+- name: fix a debian java9 certificate issue
+  shell: |
+    /usr/bin/printf '\xfe\xed\xfe\xed\x00\x00\x00\x02\x00\x00\x00\x00\xe2\x68\x6e\x45\xfb\x43\xdf\xa4\xd9\x92\xdd\x41\xce\xb6\xb2\x1c\x63\x30\xd7\x92' > /etc/ssl/certs/java/cacerts
+    /var/lib/dpkg/info/ca-certificates-java.postinst configure
+
+
+# service
+
+- name: setup service file
+  template: 
+    src: leihs-zhdk-sync.service 
+    dest: /etc/systemd/system/leihs-zhdk-sync.service
+    mode: 0640
+
+- command: systemctl daemon-reload
+  changed_when: false
+  name: reload systemctl
+
+
+# timer 
+ 
+- name: install the sync timer
+  template:
+    src: leihs-zhdk-sync.timer
+    dest: /etc/systemd/system/leihs-zhdk-sync.timer
+    mode: 0644
+
+- name: reload systemctl
+  command: systemctl daemon-reload
+  changed_when: false
+
+- name: enable the sync timer
+  service:
+    name: leihs-zhdk-sync.timer
+    enabled: yes
+    state: started

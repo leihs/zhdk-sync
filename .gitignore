@@ -1,5 +1,6 @@
 *.class
 *.jar
+*.retry
 .hg/
 .hgignore
 /.lein-*

@@ -22,7 +22,7 @@
                       ["--add-modules" "java.xml.bind"]
                       []))
 
-  :javac-options ["-target" "1.8" "-source" "1.8" "-Xlint:-options"]
+  :javac-options ["-Xlint:-options"]
 
   :main leihs.zhdk-sync.main
 

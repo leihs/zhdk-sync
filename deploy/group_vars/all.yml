@@ -1,0 +1,5 @@
+leihs_zhdk_sync_root_dir: /leihs/zhdk-sync
+leihs_zhdk_sync_jar_path: '{{leihs_zhdk_sync_root_dir}}/leihs_zhdk-sync.jar'
+
+leihs_zhdk_sync_user: leihs-zhdk-sync
+leihs_zhdk_sync_group: leihs-zhdk-sync

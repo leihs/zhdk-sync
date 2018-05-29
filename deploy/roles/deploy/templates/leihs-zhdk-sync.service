@@ -1,0 +1,18 @@
+[Unit]
+Description=Leihs ZHdK Sync Service
+After=syslog.target
+After=network.target
+
+BindsTo=leihs-admin.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=false
+WorkingDirectory={{leihs_zhdk_sync_root_dir}}
+User={{leihs_zhdk_sync_user}} 
+Environment=LEIHS_TOKEN={{leihs_master_secret}}
+Environment=ZAPI_TOKEN={{zapi_key_dev}}
+ExecStart=/usr/lib/jvm/java-9-openjdk-amd64/bin/java "-Xmx1014m" "-jar" "{{leihs_zhdk_sync_jar_path}}"
+
+[Install]
+WantedBy=multi-user.target
