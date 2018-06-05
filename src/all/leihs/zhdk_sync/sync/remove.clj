@@ -51,6 +51,7 @@
            :as :json
            :basic-auth [token ""]
            :body (cheshire/generate-string {:org_id nil
+                                            :email nil
                                             :account_enabled false
                                             :password_sign_in_enabled false})}))))
 
