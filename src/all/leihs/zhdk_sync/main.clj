@@ -26,10 +26,11 @@
   (Long/parseLong s))
 
 (def defaults 
-  {:LEIHS_HTTP_URL "http://localhost:3211"
-   :ZAPI_HTTP_URL "https://zapi.zhdk.ch"
-   :LEIHS_ESTIMATE_USER_COUNT 10500
-   :ZAPI_ESTIMATE_PEOPLE_COUNT 4357})
+  {:LEIHS_ESTIMATE_USER_COUNT 10500
+   :LEIHS_HTTP_URL "http://localhost:3211"
+   :LEIHS_SYNC_ID "org_id"
+   :ZAPI_ESTIMATE_PEOPLE_COUNT 4849
+   :ZAPI_HTTP_URL "https://zapi.zhdk.ch" })
 
 (defn env-or-default [kw & {:keys [parse-fn]
                             :or {parse-fn identity}}]
@@ -55,10 +56,10 @@
    [nil "--leihs-token LEIHS_TOKEN"
     :default (env-or-default :LEIHS_TOKEN) 
     :parse-fn identity]
-   ;["-z" "--zapi-http-url ZAPI_HTTP_URL"
-   ; (str "default: " (:ZAPI_HTTP_URL defaults))
-   ; :default (env-or-default :ZAPI_HTTP_URL) 
-   ; :parse-fn identity]
+   [nil "--leihs-sync-id LEIHS_SYNC_ID"
+    "The attribute by which the the user is identified, either org_id or email."
+    :default (env-or-default :LEIHS_SYNC_ID)
+    :parse-fn identity]
    ["-p" "--progress" "Show progess bar and estimated time to finish"
     :default false]
    [nil "--zapi-token ZAPI_TOKEN"

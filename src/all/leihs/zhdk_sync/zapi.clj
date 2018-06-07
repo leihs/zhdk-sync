@@ -32,31 +32,6 @@
    :only_zhdk true
    :limit default-limit})
 
-(defn sanitiy-check-email-address-unqiueness! [people]
-  (let [count-people (count people)
-        count-email-addresses (->> people 
-                                   (map #(-> % :business_contact :email_main)) 
-                                   (map clojure.string/lower-case)
-                                   (map presence)
-                                   (filter identity)
-                                   set
-                                   count)]
-    (when-not (= count-people count-email-addresses)
-      (throw (ex-info "Each person must have an existing and unique email-address."
-                      {:count-people count-people
-                       :count-email-addresses count-email-addresses})))))
-
-
-(defn filter-zapi-person [person]
-  (if-not (-> person
-              :business_contact
-              :email_main
-              presence)
-    (do (logging/warn "Dropping person " person 
-                      " because business email is not present.")
-        false)
-    true))
-
 (def people* (atom nil))
 
 (defn- fetch-people [token query-params estimate-count show-progress]
@@ -84,7 +59,7 @@
                                    :total (count data) 
                                    :progress (count data)))
             (flush))
-          (->> data (filter filter-zapi-person)))))))
+          data)))))
 
 (defn- _people [options query-params]
   (logging/info "Fetching people from ZAPI")
@@ -97,7 +72,6 @@
       (throw (ex-info "ZAPI expected people count deviates by more than a tenth."
                       {:people-count (count people) 
                        :estimate-count estimate-count})))
-    (sanitiy-check-email-address-unqiueness! people)
     (reset! people* people)
     people))
 

@@ -55,15 +55,31 @@
                                             :account_enabled false
                                             :password_sign_in_enabled false})}))))
 
+(defn to-be-removed-leihs-users-by-email [zapi-people leihs-users]
+  (let [zapi-email-addresses (zapi-lower-email-addresses zapi-people)]
+    (->> leihs-users
+         (filter #(-> % :org_id presence))
+         (filter #(not (zapi-email-addresses
+                         (some-> % :email clojure.string/lower-case)))))))
+
+(defn to-be-removed-leihs-users-by-org-id [zapi-people leihs-users]
+  (let [zapi-org-ids(->> zapi-people 
+                              (map :id) 
+                              (filter identity)
+                              (map str)
+                              set)]
+    (->> leihs-users
+         (filter #(-> % :org_id presence))
+         (filter #(not (zapi-org-ids
+                         (some-> % :org_id)))))))
+
 
 (defn remove-or-disable [conf zapi-people leihs-users]
   (logging/info ">>> Removing or disabling removed users >>>")
   (let [show-progress (:progress conf)
-        zapi-email-addresses (zapi-lower-email-addresses zapi-people)
-        to-be-removed-leihs-users (->> leihs-users
-                                       (filter #(-> % :org_id presence))
-                                       (filter #(not (zapi-email-addresses
-                                                       (some-> % :email clojure.string/lower-case)))))
+        to-be-removed-leihs-users (case (:leihs-sync-id conf)
+                                    "email" (to-be-removed-leihs-users-by-email zapi-people leihs-users)
+                                    "org_id" (to-be-removed-leihs-users-by-org-id zapi-people leihs-users))
         total-count (count to-be-removed-leihs-users)]
     (def ^:dynamic *to-be-removed-leihs-users* to-be-removed-leihs-users)
     (loop [users to-be-removed-leihs-users

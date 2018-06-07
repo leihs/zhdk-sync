@@ -16,23 +16,34 @@
     ))
 
 
-(defn add-new-leihs-users [conf zapi-people leihs-users]
-  (logging/info ">>> Adding new users to leihs >>>")
-  (let [show-progress (:progress conf)
-        to-be-added-email-addresses (clojure.set/difference 
+(defn- to-be-added-zapi-users-by-email [zapi-people leihs-users]
+  (let [to-be-added-email-addresses (clojure.set/difference 
                                       (zapi-lower-email-addresses zapi-people)
-                                      (leihs-lower-email-addresses leihs-users))
-        add-users (->> zapi-people
-                       (filter #(to-be-added-email-addresses 
-                                  (clojure.string/lower-case 
-                                    (get-zapi-field % [:business_contact :email_main]))))
-                       (map zapi->leihs-attributes)
-                       seq)
-        total-count (count add-users)]
-    (def ^:dynamic *to-be-added-email-addresses* to-be-added-email-addresses)
-    (def ^:dynamic *add-users* add-users)
-    ;(logging/info total-count)
-    (loop [users add-users
+                                      (leihs-lower-email-addresses leihs-users))]
+    (->> zapi-people
+         (filter #(get-zapi-field % [:business_contact :email_main]))
+         (filter #(to-be-added-email-addresses 
+                    (clojure.string/lower-case 
+                      (get-zapi-field % [:business_contact :email_main])))))))
+
+(defn- to-be-added-zapi-users-by-org-id [zapi-people leihs-users]
+  (let [zapi-org-ids (->> zapi-people (map :id) (filter identity) str set)
+        leihs-org-ids (->> leihs-users (map :org_id) (filter identity) set)
+        to-be-added-org-ids (clojure.set/difference 
+                              zapi-org-ids leihs-org-ids)]
+    (def ^:dynamic zapi-org-ids* zapi-org-ids)
+    (def ^:dynamic leihs-org-ids* leihs-org-ids)
+    (def ^:dynamic to-be-added-org-ids* to-be-added-org-ids)
+    (->> zapi-people
+         (filter #(to-be-added-org-ids (:id %))))))
+
+
+(defn- add-users [conf to-be-added-zapi-users]
+  (let [show-progress (:progress conf)
+        users (->> to-be-added-zapi-users
+                   (map zapi->leihs-attributes))
+        total-count (count users)]
+    (loop [users users
            bar (progrock/progress-bar total-count)]
       (if-let [user (first users)]
         (do 
@@ -48,13 +59,22 @@
                                    :total  total-count
                                    :progress total-count))
             (flush)))))
-    (logging/info "<<< Added " total-count " users <<<")
-    add-users))
+    total-count))
 
 
+
+(defn add-new-leihs-users [conf zapi-people leihs-users]
+  (logging/info ">>> Adding new users to leihs >>>")
+  (let [to-be-added-zapi-users (case (:leihs-sync-id conf)
+                                 "email" (to-be-added-zapi-users-by-email zapi-people leihs-users)
+                                 "org_id" (to-be-added-zapi-users-by-org-id zapi-people leihs-users))
+        total-count (count to-be-added-zapi-users)
+        show-progress (:progress conf)]
+    (add-users conf to-be-added-zapi-users)
+    (logging/info "<<< Added " total-count " users <<<")))
 
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns 'cider-ci.utils.shutdown)
-;(debug/debug-ns *ns*)
+(debug/debug-ns *ns*)

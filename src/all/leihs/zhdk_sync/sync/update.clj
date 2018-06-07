@@ -30,28 +30,50 @@
                true)
            false))))
 
+(defn to-be-updated-users-by-org-id [zapi-people leihs-users]
+  (let [leihs-users-org-id-map (->> leihs-users 
+                                    (filter :org_id)
+                                    (map (fn [u] [(:org_id u)
+                                                  (select-keys u attribute-keys)]))
+                                    (into {}))]
+    (->> zapi-people
+         (map zapi->leihs-attributes)
+         (filter :org_id)
+         (filter (fn [zapi-attrs] 
+                   (let [leihs-attrs (get leihs-users-org-id-map (:org_id zapi-attrs))]
+                     (needs-update? zapi-attrs leihs-attrs))))
+         (map #(assoc % :id (-> leihs-users-org-id-map 
+                                (get (-> % :org_id))
+                                :id))))))
 
-(defn to-be-updated-users [zapi-people leihs-users]
+(defn to-be-updated-users-by-email [zapi-people leihs-users]
   (let [leihs-users-email-map (->> leihs-users 
+                                   (filter :email)
                                    (map (fn [u] [(clojure.string/lower-case (:email u))
                                                  (select-keys u attribute-keys)]))
                                    (into {}))]
     (->> zapi-people
          (map zapi->leihs-attributes)
+         (filter :email)
          (filter (fn [zapi-attrs] 
                    (let [email (-> zapi-attrs :email clojure.string/lower-case)
                          leihs-attrs (get leihs-users-email-map email)]
                      (needs-update? zapi-attrs leihs-attrs))))
          (map #(assoc % :id (-> leihs-users-email-map 
                                 (get (-> % :email clojure.string/lower-case))
-                                :id ))))))
+                                :id))))))
 
+
+(defn to-be-updated-users [conf zapi-people leihs-users]
+  (case (:leihs-sync-id conf)
+    "email" (to-be-updated-users-by-email zapi-people leihs-users)
+    "org_id" (to-be-updated-users-by-org-id zapi-people leihs-users)))
 
 
 (defn update-existing-leihs-users [conf zapi-people leihs-users]
   (logging/info ">>> Updating leihs users >>>")
   (let [show-progress (:progress conf)
-        to-be-updated-users (to-be-updated-users zapi-people leihs-users)
+        to-be-updated-users (to-be-updated-users conf zapi-people leihs-users)
         total-count (count to-be-updated-users)]
     (def ^:dynamic *to-be-updated-users* to-be-updated-users)
     (loop [users to-be-updated-users

@@ -48,12 +48,14 @@
 (defn zapi-lower-email-addresses [zapi-people]
   (->> zapi-people
        (map #(get-in % [:business_contact :email_main]))
+       (filter identity)
        (map clojure.string/lower-case)
        set))
 
 (defn leihs-lower-email-addresses [leihs-users]
   (->> leihs-users 
        (map :email) 
+       (filter identity)
        (map clojure.string/lower-case)
        set))
 
