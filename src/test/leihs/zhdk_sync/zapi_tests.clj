@@ -10,13 +10,13 @@
     ))
 
 (defn zapi-token []
-  (or (some-> "ZAPI_TOKEN" 
-              System/getenv 
+  (or (some-> "ZAPI_TOKEN"
+              System/getenv
               presence)
-      (some-> "secrets.clj" 
+      (some-> "secrets.clj"
               io/resource
               slurp
-              edn/read-string     
+              edn/read-string
               :zapi-token
               )))
 

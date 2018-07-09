@@ -1,9 +1,9 @@
-(ns leihs.zhdk-sync.sync.update
+(ns leihs.zhdk-sync.users.update
   (:refer-clojure :exclude [str keyword])
-  (:require 
+  (:require
     [leihs.utils.core :refer [presence str keyword]]
     [leihs.zhdk-sync.leihs-admin-api :as leihs-api]
-    [leihs.zhdk-sync.sync.shared :refer :all]
+    [leihs.zhdk-sync.users.shared :refer :all]
 
     [cheshire.core :as cheshire]
     [progrock.core :as progrock]
@@ -21,17 +21,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn needs-update? [zapi-attrs leihs-attrs]
-  (and leihs-attrs 
+  (and leihs-attrs
        (let [id (:id leihs-attrs)
              leihs-attrs (dissoc leihs-attrs :id)]
          (if (not= leihs-attrs zapi-attrs)
-           (do (logging/info "To be updated " id ": " 
+           (do (logging/info "To be updated " id ": "
                              (diff leihs-attrs zapi-attrs))
                true)
            false))))
 
 (defn to-be-updated-users-by-org-id [zapi-people leihs-users]
-  (let [leihs-users-org-id-map (->> leihs-users 
+  (let [leihs-users-org-id-map (->> leihs-users
                                     (filter :org_id)
                                     (map (fn [u] [(:org_id u)
                                                   (select-keys u attribute-keys)]))
@@ -39,15 +39,15 @@
     (->> zapi-people
          (map zapi->leihs-attributes)
          (filter :org_id)
-         (filter (fn [zapi-attrs] 
+         (filter (fn [zapi-attrs]
                    (let [leihs-attrs (get leihs-users-org-id-map (:org_id zapi-attrs))]
                      (needs-update? zapi-attrs leihs-attrs))))
-         (map #(assoc % :id (-> leihs-users-org-id-map 
+         (map #(assoc % :id (-> leihs-users-org-id-map
                                 (get (-> % :org_id))
                                 :id))))))
 
 (defn to-be-updated-users-by-email [zapi-people leihs-users]
-  (let [leihs-users-email-map (->> leihs-users 
+  (let [leihs-users-email-map (->> leihs-users
                                    (filter :email)
                                    (map (fn [u] [(clojure.string/lower-case (:email u))
                                                  (select-keys u attribute-keys)]))
@@ -55,11 +55,11 @@
     (->> zapi-people
          (map zapi->leihs-attributes)
          (filter :email)
-         (filter (fn [zapi-attrs] 
+         (filter (fn [zapi-attrs]
                    (let [email (-> zapi-attrs :email clojure.string/lower-case)
                          leihs-attrs (get leihs-users-email-map email)]
                      (needs-update? zapi-attrs leihs-attrs))))
-         (map #(assoc % :id (-> leihs-users-email-map 
+         (map #(assoc % :id (-> leihs-users-email-map
                                 (get (-> % :email clojure.string/lower-case))
                                 :id))))))
 
@@ -79,7 +79,7 @@
     (loop [users to-be-updated-users
            bar (progrock/progress-bar total-count)]
       (if-let [user (first users)]
-        (do 
+        (do
           (when show-progress (progrock/print bar) (flush))
           (if (:dry-run conf)
             (Thread/sleep 50)
@@ -87,8 +87,8 @@
           (recur (rest users) (progrock/tick bar)))
         (do
           (when show-progress
-            (progrock/print (assoc bar 
-                                   :done? true 
+            (progrock/print (assoc bar
+                                   :done? true
                                    :total  total-count
                                    :progress total-count))
             (flush)))))

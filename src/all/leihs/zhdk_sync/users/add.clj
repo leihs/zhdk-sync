@@ -1,9 +1,9 @@
-(ns leihs.zhdk-sync.sync.add
+(ns leihs.zhdk-sync.users.add
   (:refer-clojure :exclude [str keyword])
-  (:require 
+  (:require
     [leihs.utils.core :refer [presence str keyword]]
     [leihs.zhdk-sync.leihs-admin-api :as leihs-api]
-    [leihs.zhdk-sync.sync.shared :refer :all]
+    [leihs.zhdk-sync.users.shared :refer :all]
 
     [cheshire.core :as cheshire]
     [progrock.core :as progrock]
@@ -17,25 +17,25 @@
 
 
 (defn- to-be-added-zapi-users-by-email [zapi-people leihs-users]
-  (let [to-be-added-email-addresses (clojure.set/difference 
+  (let [to-be-added-email-addresses (clojure.set/difference
                                       (zapi-lower-email-addresses zapi-people)
                                       (leihs-lower-email-addresses leihs-users))]
     (->> zapi-people
          (filter #(get-zapi-field % [:business_contact :email_main]))
-         (filter #(to-be-added-email-addresses 
-                    (clojure.string/lower-case 
+         (filter #(to-be-added-email-addresses
+                    (clojure.string/lower-case
                       (get-zapi-field % [:business_contact :email_main])))))))
 
 (defn- to-be-added-zapi-users-by-org-id [zapi-people leihs-users]
-  (let [zapi-org-ids (->> zapi-people (map :id) (filter identity) str set)
+  (let [zapi-org-ids (->> zapi-people (map :id) (filter identity) (map str) set)
         leihs-org-ids (->> leihs-users (map :org_id) (filter identity) set)
-        to-be-added-org-ids (clojure.set/difference 
+        to-be-added-org-ids (clojure.set/difference
                               zapi-org-ids leihs-org-ids)]
     (def ^:dynamic zapi-org-ids* zapi-org-ids)
     (def ^:dynamic leihs-org-ids* leihs-org-ids)
     (def ^:dynamic to-be-added-org-ids* to-be-added-org-ids)
     (->> zapi-people
-         (filter #(to-be-added-org-ids (:id %))))))
+         (filter #(to-be-added-org-ids (-> % :id str))))))
 
 
 (defn- add-users [conf to-be-added-zapi-users]
@@ -46,7 +46,7 @@
     (loop [users users
            bar (progrock/progress-bar total-count)]
       (if-let [user (first users)]
-        (do 
+        (do
           (when show-progress (progrock/print bar) (flush))
           (if (:dry-run conf)
             (Thread/sleep 50)
@@ -54,8 +54,8 @@
           (recur (rest users) (progrock/tick bar)))
         (do
           (when show-progress
-            (progrock/print (assoc bar 
-                                   :done? true 
+            (progrock/print (assoc bar
+                                   :done? true
                                    :total  total-count
                                    :progress total-count))
             (flush)))))
@@ -77,4 +77,4 @@
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns 'cider-ci.utils.shutdown)
-(debug/debug-ns *ns*)
+;(debug/debug-ns *ns*)

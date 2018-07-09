@@ -1,0 +1,70 @@
+(ns leihs.zhdk-sync.groups.add
+  (:refer-clojure :exclude [str keyword])
+  (:require
+    [leihs.utils.core :refer [presence str keyword]]
+    [leihs.zhdk-sync.leihs-admin-api :as leihs-api]
+    [leihs.zhdk-sync.groups.shared :refer :all]
+
+    [cheshire.core :as cheshire]
+    [progrock.core :as progrock]
+    [clojure.java.io :as io]
+
+    [clojure.tools.logging :as logging]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug :refer [I>]]
+    [logbug.thrown :as thrown]
+    ))
+
+
+(defn- to-be-added-zapi-groups-by-org-id [zapi-groups leihs-groups]
+  (def ^:dynamic *zapi-groups* zapi-groups)
+  (let [zapi-org-ids (->> zapi-groups (map :id) (filter identity) (map str) set)
+        leihs-org-ids (->> leihs-groups (map :org_id) (filter identity) set)
+        to-be-added-org-ids (clojure.set/difference
+                              zapi-org-ids leihs-org-ids)]
+    (def ^:dynamic *zapi-org-ids* zapi-org-ids)
+    (def ^:dynamic *leihs-org-ids* leihs-org-ids)
+    (def ^:dynamic *to-be-added-org-ids* to-be-added-org-ids)
+    (->> zapi-groups
+         (filter #(to-be-added-org-ids (-> % :id str))))))
+
+
+(defn- add-groups [conf to-be-added-zapi-groups]
+  (let [show-progress (:progress conf)
+        groups (->> to-be-added-zapi-groups
+                   (map zapi->leihs-attributes))
+        total-count (count groups)]
+    (loop [groups groups
+           bar (progrock/progress-bar total-count)]
+      (if-let [group (first groups)]
+        (do
+          (when show-progress (progrock/print bar) (flush))
+          (if (:dry-run conf)
+            (Thread/sleep 50)
+            (leihs-api/add-group group conf))
+          (recur (rest groups) (progrock/tick bar)))
+        (do
+          (when show-progress
+            (progrock/print (assoc bar
+                                   :done? true
+                                   :total  total-count
+                                   :progress total-count))
+            (flush)))))
+    total-count))
+
+
+
+(defn add-new-leihs-groups [conf zapi-groups leihs-groups]
+  (logging/info ">>> Adding new groups to leihs >>>")
+  (let [to-be-added-zapi-groups (to-be-added-zapi-groups-by-org-id zapi-groups leihs-groups)
+        total-count (count to-be-added-zapi-groups)
+        show-progress (:progress conf)]
+    (add-groups conf to-be-added-zapi-groups)
+    (logging/info "<<< Added " total-count " groups <<<")))
+
+;#### debug ###################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(debug/debug-ns 'cider-ci.utils.shutdown)
+;(debug/re-apply-last-argument #' add-new-leihs-groups)
+;(debug/debug-ns *ns*)

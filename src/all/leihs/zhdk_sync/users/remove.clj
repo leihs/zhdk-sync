@@ -1,9 +1,9 @@
-(ns leihs.zhdk-sync.sync.remove
+(ns leihs.zhdk-sync.users.remove
   (:refer-clojure :exclude [str keyword])
-  (:require 
+  (:require
     [leihs.utils.core :refer [presence str keyword]]
     [leihs.zhdk-sync.leihs-admin-api :as leihs-api]
-    [leihs.zhdk-sync.sync.shared :refer :all]
+    [leihs.zhdk-sync.users.shared :refer :all]
 
     [clj-http.client :as http-client]
     [cheshire.core :as cheshire]
@@ -63,8 +63,8 @@
                          (some-> % :email clojure.string/lower-case)))))))
 
 (defn to-be-removed-leihs-users-by-org-id [zapi-people leihs-users]
-  (let [zapi-org-ids(->> zapi-people 
-                              (map :id) 
+  (let [zapi-org-ids(->> zapi-people
+                              (map :id)
                               (filter identity)
                               (map str)
                               set)]
@@ -95,13 +95,13 @@
                  (progrock/tick bar 1))
           (do (disable-user user conf)
               (recur (rest users)
-                     removed-users 
+                     removed-users
                      (conj disabled-users user)
                      (progrock/tick bar 1))))
         (do (when show-progress
-              (progrock/print (assoc bar 
-                                     :done? true 
-                                     :total (count users) 
+              (progrock/print (assoc bar
+                                     :done? true
+                                     :total (count users)
                                      :progress (count users)))
               (flush))
             (logging/info (str "<<< Removed " (count removed-users) " and disabled " (count disabled-users) " users <<<")))))))

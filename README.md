@@ -108,3 +108,9 @@ curl -u $ZAPI_TOKEN_USER https://zapi.zhdk.ch/v1/person/documentation | json_pp
    "limit" : "Limit the results; default: 50, max: 100",
    "offset" : "set the result offset"
 }
+
+
+
+### User-Group 
+
+

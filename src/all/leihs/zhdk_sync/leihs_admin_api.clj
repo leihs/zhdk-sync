@@ -1,6 +1,6 @@
 (ns leihs.zhdk-sync.leihs-admin-api
   (:refer-clojure :exclude [str keyword])
-  (:require 
+  (:require
     [leihs.utils.core :refer [presence str keyword]]
     [leihs.zhdk-sync.utils :refer [deviates-by-more-than-tenth?]]
 
@@ -15,7 +15,11 @@
     ))
 
 
-(def fields
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; users ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def user-fields
   #{
     :account_enabled
     :address
@@ -40,29 +44,28 @@
     :zip
     })
 
-
 (defn- fetch-users [base-url token estimate-count show-progress]
   (loop [page 1
          users []
          bar (progrock/progress-bar estimate-count)]
     (when show-progress (progrock/print bar) (flush))
-    (if-let [more-users (seq (-> (http-client/get 
+    (if-let [more-users (seq (-> (http-client/get
                                    (str base-url "/admin/users/")
-                                   {:query-params 
+                                   {:query-params
                                     {:page page
                                      :per-page 1000
-                                     :fields (cheshire/generate-string fields)}
+                                     :fields (cheshire/generate-string user-fields)}
                                     :accept :json
                                     :as :json
                                     :basic-auth [token ""]})
                                  :body :users))]
-      (recur (inc page) 
+      (recur (inc page)
              (concat users more-users)
              (progrock/tick bar (count more-users)))
       (do (when show-progress
-            (progrock/print (assoc bar 
-                                   :done? true 
-                                   :total (count users) 
+            (progrock/print (assoc bar
+                                   :done? true
+                                   :total (count users)
                                    :progress (count users)))
             (flush))
           users))))
@@ -76,19 +79,15 @@
     (assert token)
     (assert (instance? Long estimate-count))
     (let [users (fetch-users base-url token estimate-count (:progress options))]
-      (when-not (:leihs-skip-user-count-check options)
+      (when-not (:leihs-skip-count-check options)
         (when (deviates-by-more-than-tenth? (count users) estimate-count)
           (throw (ex-info "Leihs expected user count deviates by more than a tenth."
-                          {:users-count (count users) 
+                          {:users-count (count users)
                            :estimate-count estimate-count}))))
       (def ^:dynamic *users* users)
       users)))
 
 (defonce users (memoize _users))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 (defn add-user [user-attributes conf]
   (let [base-url (-> conf :leihs-http-url presence)
@@ -120,10 +119,89 @@
            :body (cheshire/generate-string user-attributes)
            }))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; groups ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- fetch-groups [base-url token estimate-count show-progress]
+  (loop [page 1
+         groups []
+         bar (progrock/progress-bar estimate-count)]
+    (when show-progress (progrock/print bar) (flush))
+    (if-let [more-groups (seq (-> (http-client/get
+                                    (str base-url "/admin/groups/")
+                                    {:query-params
+                                     {:page page
+                                      :per-page 1000}
+                                     :accept :json
+                                     :as :json
+                                     :basic-auth [token ""]})
+                                  :body :groups))]
+      (recur (inc page)
+             (concat groups more-groups)
+             (progrock/tick bar (count more-groups)))
+      (do (when show-progress
+            (progrock/print (assoc bar
+                                   :done? true
+                                   :total (count groups)
+                                   :progress (count groups)))
+            (flush))
+          groups))))
+
+;(fetch-groups "http://localhost:3211" "secret" 1 false)
+
+(defn groups [options]
+  (logging/info "Fetching existing GROUPS from leihs")
+  (let [base-url (-> options :leihs-http-url presence)
+        token (-> options :leihs-token presence)
+        estimate-count (-> options :leihs-estimate-group-count)
+        show-progress (:progress options)]
+    (assert base-url)
+    (assert token)
+    (assert (instance? Long estimate-count))
+    (let [groups (fetch-groups base-url token estimate-count show-progress)]
+      (when-not (:leihs-skip-count-check options)
+        (when (deviates-by-more-than-tenth? (count groups) estimate-count)
+          (throw (ex-info "Leihs expected group count deviates by more than a tenth."
+                          {:groups-count (count groups)
+                           :estimate-count estimate-count}))))
+      (def ^:dynamic *groups* groups)
+      groups)))
+
+(defn add-group [group-attributes conf]
+  (let [base-url (-> conf :leihs-http-url presence)
+        token (-> conf :leihs-token presence) ]
+    (assert base-url)
+    (assert token)
+    (-> (http-client/post
+          (str base-url "/admin/groups/")
+          {:accept :json
+           :content-type :json
+           :as :json
+           :basic-auth [token ""]
+           :body (cheshire/generate-string group-attributes)
+           }))))
+
+(defn update-group [group-attributes conf]
+  (let [id (-> group-attributes :id presence)
+        base-url (-> conf :leihs-http-url presence)
+        token (-> conf :leihs-token presence)]
+    (assert id)
+    (assert base-url)
+    (assert token)
+    (-> (http-client/patch
+          (str base-url "/admin/groups/" id)
+          {:accept :json
+           :content-type :json
+           :as :json
+           :basic-auth [token ""]
+           :body (cheshire/generate-string group-attributes)
+           }))))
+
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns 'cider-ci.utils.shutdown)
 ;(debug/debug-ns *ns*)
-
 
