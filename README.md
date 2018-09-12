@@ -4,7 +4,7 @@
 
 example:
 
-    ansible-playbook -v -i ../leihs_v5/zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml -t doit
+    ansible-playbook -v -i ../leihs_v5/zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml
 
 ### API Notes
 

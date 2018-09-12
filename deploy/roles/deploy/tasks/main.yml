@@ -45,9 +45,15 @@
     dest: /etc/systemd/system/leihs-zhdk-sync.service
     mode: 0640
 
+- name: enabled the service
+  service:
+    name: leihs-zhdk-sync.service 
+    enabled: yes
+
 - command: systemctl daemon-reload
   changed_when: false
   name: reload systemctl
+
 
 
 # timer 
