@@ -19,8 +19,7 @@
   (some-> zapi-person (get-in ks) presence))
 
 (def attribute-keys
-  [
-   :address
+  [:address
    :badge_id
    :city
    :country
@@ -31,11 +30,11 @@
    :img32_url
    :img_digest
    :lastname
+   :login
    :org_id
    :phone
    :url
-   :zip
-   ])
+   :zip])
 
 (def de-iso-codes
   (-> "iso-countries/langs/de.json"
@@ -80,6 +79,7 @@
                      evento-id "&ftype=1&pad=1")
      :img_digest nil
      :lastname (get-zapi-field zapi-person [:basic :last_name])
+     :login (get-zapi-field zapi-person [:account :user_name])
      :org_id (str evento-id)
      :phone (or (get-zapi-field zapi-person [:business_contact :phone_business])
                 (get-zapi-field zapi-person [:personal_contact :phone_business])

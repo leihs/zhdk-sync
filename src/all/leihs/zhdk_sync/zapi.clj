@@ -16,15 +16,14 @@
 ;;; person/people ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def person-fieldsets
-  (clojure.string/join
-    "," [
-         "basic"
-         "business_contact"
-         "leihs_temp"
-         "personal_contact"
-         "photo"
-         "user_group"
-         ]))
+  (->> ["account"
+        "basic"
+        "business_contact"
+        "leihs_temp"
+        "personal_contact"
+        "photo"
+        "user_group"]
+       (clojure.string/join "," )))
 
 (def default-person-query-params
   {:fieldsets person-fieldsets

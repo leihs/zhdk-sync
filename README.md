@@ -4,7 +4,7 @@
 
 example:
 
-    ansible-playbook -v -i ../leihs_v5/zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml
+    ansible-playbook -v -i ../zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml
 
 ### API Notes
 
@@ -14,7 +14,7 @@ curl -u $ZAPI_TOKEN_USER https://zapi.zhdk.ch/v1/person/documentation | json_pp
 
 curl -u $ZAPI_TOKEN_USER https://zapi.zhdk.ch/v1/person/?limit=1 | json_pp
 
-curl -s -u $ZAPI_TOKEN_USER 'https://zapi.zhdk.ch/v1/person/?limit=1&last_name=schank&fieldsets=basic,personal_contact,leihs_temp' | json_pp
+curl -s -u "$ZAPI_TOKEN_USER:" 'https://zapi.zhdk.ch/v1/person/?limit=1&last_name=schank&fieldsets=basic,personal_contact,leihs_temp' | json_pp
 
 
 ### General Documentation
