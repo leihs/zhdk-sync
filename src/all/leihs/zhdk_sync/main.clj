@@ -33,7 +33,6 @@
   {:LEIHS_ESTIMATE_USER_COUNT 10894
    :LEIHS_ESTIMATE_GROUP_COUNT 1484 
    :LEIHS_HTTP_URL "http://localhost:3211"
-   :LEIHS_SYNC_ID "org_id"
    :ZAPI_ESTIMATE_PEOPLE_COUNT 4671 
    :ZAPI_ESTIMATE_USER_GROUPS_COUNT 1484
    :ZAPI_PAGE_LIMIT 100
@@ -67,10 +66,6 @@
    [nil "--leihs-token LEIHS_TOKEN"
     :default (env-or-default :LEIHS_TOKEN)
     :parse-fn identity]
-   [nil "--leihs-sync-id LEIHS_SYNC_ID"
-    "The attribute by which the the user is identified, either org_id or email."
-    :default (env-or-default :LEIHS_SYNC_ID)
-    :parse-fn identity]
    ["-p" "--progress" "Show progess bar and estimated time to finish"
     :default false]
    [nil "--zapi-token ZAPI_TOKEN"
@@ -88,11 +83,21 @@
     :default (env-or-default :ZAPI_ESTIMATE_PEOPLE_COUNT :parse-fn parse-int)
     :parse-fn parse-int]])
 
+
+(defn initial-sync? [users]
+  (->> users 
+       (filter #(re-matches #".*\|zhdk$" (or (:org_id %) ""))) 
+       first boolean))
+
 (defn run [options]
   (catcher/with-logging
     {}
     (let [zapi-people (zapi/people options)
-          leihs-users (leihs-admin-api/users options)]
+          leihs-users (leihs-admin-api/users options)
+          options (assoc options :leihs-sync-id
+                         (if (initial-sync? leihs-users)
+                           "email"
+                           "org_id"))]
       (user-sync-add/add-new-leihs-users options zapi-people leihs-users)
       (user-sync-update/update-existing-leihs-users options zapi-people leihs-users)
       (user-sync-remove/remove-or-disable options zapi-people leihs-users)
@@ -130,7 +135,7 @@
       :else (run options)
       )))
 
-;(-main "-k")
+;(-main "-k" "-d")
 
 
 ;#### debug ###################################################################

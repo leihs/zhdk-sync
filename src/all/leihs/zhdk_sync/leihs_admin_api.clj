@@ -87,6 +87,7 @@
       (def ^:dynamic *users* users)
       users)))
 
+
 (defonce users (memoize _users))
 
 (defn add-user [user-attributes conf]
