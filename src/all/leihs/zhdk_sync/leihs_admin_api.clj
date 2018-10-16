@@ -76,17 +76,9 @@
         token (-> options :leihs-token presence)
         estimate-count (-> options :leihs-estimate-user-count)]
     (assert base-url)
-    (assert token)
-    (assert (instance? Long estimate-count))
-    (let [users (fetch-users base-url token estimate-count (:progress options))]
-      (when-not (:leihs-skip-count-check options)
-        (when (deviates-by-more-than-tenth? (count users) estimate-count)
-          (throw (ex-info "Leihs expected user count deviates by more than a tenth."
-                          {:users-count (count users)
-                           :estimate-count estimate-count}))))
-      (def ^:dynamic *users* users)
-      users)))
-
+    (assert token) 
+    (def ^:dynamic *users* (fetch-users base-url token estimate-count (:progress options)))
+    *users*))
 
 (defonce users (memoize _users))
 
@@ -160,15 +152,8 @@
         show-progress (:progress options)]
     (assert base-url)
     (assert token)
-    (assert (instance? Long estimate-count))
-    (let [groups (fetch-groups base-url token estimate-count show-progress)]
-      (when-not (:leihs-skip-count-check options)
-        (when (deviates-by-more-than-tenth? (count groups) estimate-count)
-          (throw (ex-info "Leihs expected group count deviates by more than a tenth."
-                          {:groups-count (count groups)
-                           :estimate-count estimate-count}))))
-      (def ^:dynamic *groups* groups)
-      groups)))
+    (def ^:dynamic *groups* (fetch-groups base-url token estimate-count show-progress))
+    *groups*))
 
 (defn add-group [group-attributes conf]
   (let [base-url (-> conf :leihs-http-url presence)

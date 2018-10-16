@@ -73,3 +73,13 @@
     name: leihs-zhdk-sync.timer
     enabled: yes
     state: started
+
+
+# service
+
+- name: start leihs-zhdk-sync.service
+  service:
+    name: leihs-zhdk-sync.service
+    state: started
+    enabled: yes
+

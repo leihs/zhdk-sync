@@ -53,11 +53,11 @@
     :default (env-or-default :LEIHS_HTTP_URL)
     :parse-fn identity]
    [nil "--leihs-estimate-user-count LEIHS_ESTIMATE_USER_COUNT"
-    "Estimate of the user count before the sync, abort if deviation > 10%"
+    "Estimate of the user count"
     :default (env-or-default :LEIHS_ESTIMATE_USER_COUNT :parse-fn parse-int)
     :parse-fn parse-int]
    [nil "--leihs-estimate-group-count LEIHS_ESTIMATE_GROUP_COUNT"
-    "Estimate of the group count before the sync, abort if deviation > 10%"
+    "Estimate of the group count"
     :default (env-or-default :LEIHS_ESTIMATE_GROUP_COUNT :parse-fn parse-int)
     :parse-fn parse-int]
    ["-k" "--leihs-skip-count-check"
