@@ -2,15 +2,17 @@
   (:refer-clojure :exclude [str keyword])
   (:require
     [leihs.utils.core :refer [presence str keyword]]
-    [leihs.zhdk-sync.zapi :as zapi]
-    [leihs.zhdk-sync.leihs-admin-api :as leihs-admin-api]
-    [leihs.zhdk-sync.users.add :as user-sync-add]
-    [leihs.zhdk-sync.users.update :as user-sync-update]
-    [leihs.zhdk-sync.users.remove :as user-sync-remove]
+
     [leihs.zhdk-sync.groups.add :as group-sync-add]
-    [leihs.zhdk-sync.groups.update :as group-sync-update]
     [leihs.zhdk-sync.groups.remove :as group-sync-remove]
+    [leihs.zhdk-sync.groups.update :as group-sync-update]
     [leihs.zhdk-sync.groups.users :as group-sync-users]
+    [leihs.zhdk-sync.leihs-admin-api :as leihs-admin-api]
+    [leihs.zhdk-sync.prtg :as prtg]
+    [leihs.zhdk-sync.users.add :as user-sync-add]
+    [leihs.zhdk-sync.users.remove :as user-sync-remove]
+    [leihs.zhdk-sync.users.update :as user-sync-update]
+    [leihs.zhdk-sync.zapi :as zapi]
 
     [clojure.tools.cli :as cli :refer [parse-opts]]
     [clojure.pprint :refer [pprint]]
@@ -36,7 +38,8 @@
    :ZAPI_ESTIMATE_PEOPLE_COUNT 4671 
    :ZAPI_ESTIMATE_USER_GROUPS_COUNT 1484
    :ZAPI_PAGE_LIMIT 100
-   :ZAPI_HTTP_URL "https://zapi.zhdk.ch" })
+   :ZAPI_HTTP_URL "https://zapi.zhdk.ch" 
+   :PRTG_URL nil})
 
 (defn env-or-default [kw & {:keys [parse-fn]
                             :or {parse-fn identity}}]
@@ -68,6 +71,10 @@
     :parse-fn identity]
    ["-p" "--progress" "Show progess bar and estimated time to finish"
     :default false]
+   [nil "--prtg-url PRTG_URL"
+    (str "default: " (:PRTG_URL defaults))
+    :default (env-or-default :PRTG_URL)
+    :parse-fn identity]
    [nil "--zapi-token ZAPI_TOKEN"
     :default (env-or-default :ZAPI_TOKEN)
     :parse-fn identity]
@@ -90,25 +97,44 @@
        first boolean))
 
 (defn run [options]
-  (catcher/with-logging
-    {}
+  (try 
     (let [zapi-people (zapi/people options)
           leihs-users (leihs-admin-api/users options)
           options (assoc options :leihs-sync-id
                          (if (initial-sync? leihs-users)
                            "email"
-                           "org_id"))]
-      (user-sync-add/add-new-leihs-users options zapi-people leihs-users)
-      (user-sync-update/update-existing-leihs-users options zapi-people leihs-users)
-      (user-sync-remove/remove-or-disable options zapi-people leihs-users)
+                           "org_id"))
+          added-users (user-sync-add/add-new-leihs-users 
+                        options zapi-people leihs-users)
+          updated-users (user-sync-update/update-existing-leihs-users 
+                          options zapi-people leihs-users)
+          removed-or-disabled-users (user-sync-remove/remove-or-disable 
+                                      options zapi-people leihs-users)]
       (let [zapi-groups (zapi/user-groups options)
             zapi-groups-with-users (zapi/user-groups-with-users zapi-groups zapi-people)
-            leihs-groups (leihs-admin-api/groups options)]
-        (group-sync-add/add-new-leihs-groups options zapi-groups leihs-groups)
-        (group-sync-update/update-existing-leihs-groups options zapi-groups leihs-groups)
-        (group-sync-remove/remove-or-disable options zapi-groups leihs-groups)
+            leihs-groups (leihs-admin-api/groups options)
+            added-groups (group-sync-add/add-new-leihs-groups options zapi-groups leihs-groups)
+            updated-groups (group-sync-update/update-existing-leihs-groups options zapi-groups leihs-groups)
+            removed-groups (group-sync-remove/remove-groups options zapi-groups leihs-groups)]
         (group-sync-users/update-groups-users options zapi-groups-with-users)
-        ))))
+        (when-let [url (:prtg-url options)]
+          (prtg/send-success url (merge {}
+                                        removed-or-disabled-users
+                                        {:added-users added-users
+                                         :updated-users updated-users
+                                         :synced-users zapi-people
+                                         :added-groups added-groups
+                                         :updated-groups updated-groups
+                                         :removed-groups removed-groups
+                                         :synced-groups zapi-groups
+                                         })))))
+
+    (catch Throwable t
+      (logging/error t)
+      (when-let [url (:prtg-url options)]
+        (prtg/send-error url t)
+        (System/exit -1)))))
+
 
 (defn main-usage [options-summary & more]
   (->> ["Leihs ZHDK-Sync"

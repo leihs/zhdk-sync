@@ -104,7 +104,9 @@
                                      :total (count users)
                                      :progress (count users)))
               (flush))
-            (logging/info (str "<<< Removed " (count removed-users) " and disabled " (count disabled-users) " users <<<")))))))
+            (logging/info (str "<<< Removed " (count removed-users) " and disabled " (count disabled-users) " users <<<"))
+            {:removed-users removed-users
+             :disabled-users disabled-users})))))
 
 
 ;#### debug ###################################################################

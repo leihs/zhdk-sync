@@ -24,13 +24,13 @@
     (assert base-url)
     (assert token)
     (if (:dry-run conf)
-      (do (Thread/sleep 50)
-          true)
-      (http-client/delete
-        (str base-url "/admin/groups/" id)
-        {:accept :json
-         :as :json
-         :basic-auth [token ""]}))))
+      (do (Thread/sleep 50) {})
+      (:body 
+       (http-client/delete
+         (str base-url "/admin/groups/" id)
+         {:accept :json
+          :as :json
+          :basic-auth [token ""]})))))
 
 (defn disable-group [group conf]
   (let [id (-> group :id presence)
@@ -62,7 +62,7 @@
                          (some-> % :org_id)))))))
 
 
-(defn remove-or-disable [conf zapi-groups leihs-groups]
+(defn remove-groups [conf zapi-groups leihs-groups]
   (logging/info ">>> Removing or disabling removed groups >>>")
   (let [show-progress (:progress conf)
         to-be-removed-leihs-groups (to-be-removed-leihs-groups-by-org-id zapi-groups leihs-groups)
@@ -83,7 +83,8 @@
                                      :total (count groups)
                                      :progress (count groups)))
               (flush))
-            (logging/info (str "<<< Removed " (count removed-groups) " groups <<<")))))))
+            (logging/info (str "<<< Removed " (count removed-groups) " groups <<<"))
+            removed-groups)))))
 
 
 ;#### debug ###################################################################

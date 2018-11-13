@@ -32,35 +32,36 @@
 (defn- add-groups [conf to-be-added-zapi-groups]
   (let [show-progress (:progress conf)
         groups (->> to-be-added-zapi-groups
-                   (map zapi->leihs-attributes))
+                    (map zapi->leihs-attributes))
         total-count (count groups)]
     (loop [groups groups
+           added-groups []
            bar (progrock/progress-bar total-count)]
       (if-let [group (first groups)]
-        (do
-          (when show-progress (progrock/print bar) (flush))
-          (if (:dry-run conf)
-            (Thread/sleep 50)
-            (leihs-api/add-group group conf))
-          (recur (rest groups) (progrock/tick bar)))
-        (do
-          (when show-progress
-            (progrock/print (assoc bar
-                                   :done? true
-                                   :total  total-count
-                                   :progress total-count))
-            (flush)))))
-    total-count))
-
+        (do (when show-progress (progrock/print bar) (flush))
+            (let [added-group
+                  (if (:dry-run conf)
+                    (do (Thread/sleep 50) {})
+                    (-> (leihs-api/add-group group conf) :body))]
+              (recur (rest groups) 
+                     (conj added-groups added-group)
+                     (progrock/tick bar))))
+        (do (when show-progress
+              (progrock/print (assoc bar
+                                     :done? true
+                                     :total  total-count
+                                     :progress total-count))
+              (flush))
+            added-groups)))))
 
 
 (defn add-new-leihs-groups [conf zapi-groups leihs-groups]
   (logging/info ">>> Adding new groups to leihs >>>")
   (let [to-be-added-zapi-groups (to-be-added-zapi-groups-by-org-id zapi-groups leihs-groups)
-        total-count (count to-be-added-zapi-groups)
-        show-progress (:progress conf)]
-    (add-groups conf to-be-added-zapi-groups)
-    (logging/info "<<< Added " total-count " groups <<<")))
+        show-progress (:progress conf)
+        added-groups (add-groups conf to-be-added-zapi-groups)]
+    (logging/info "<<< Added " (count added-groups)" groups <<<")
+    added-groups))
 
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)

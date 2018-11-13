@@ -55,23 +55,26 @@
         total-count (count to-be-updated-groups)]
     (def ^:dynamic *to-be-updated-groups* to-be-updated-groups)
     (loop [groups to-be-updated-groups
+           updated-groups []
            bar (progrock/progress-bar total-count)]
       (if-let [group (first groups)]
-        (do
-          (when show-progress (progrock/print bar) (flush))
-          (if (:dry-run conf)
-            (Thread/sleep 50)
-            (leihs-api/update-group group conf))
-          (recur (rest groups) (progrock/tick bar)))
+        (do (when show-progress (progrock/print bar) (flush))
+            (let [updated-group
+                  (if (:dry-run conf)
+                    (do (Thread/sleep 50) {})
+                    (:body (leihs-api/update-group group conf)))]
+              (recur (rest groups) 
+                     (conj updated-groups updated-group)
+                     (progrock/tick bar))))
         (do
           (when show-progress
             (progrock/print (assoc bar
                                    :done? true
                                    :total  total-count
                                    :progress total-count))
-            (flush)))))
-    (logging/info "<<< Updated " total-count " leihs groups <<<")
-    to-be-updated-groups))
+            (flush))
+          (logging/info "<<< Updated " total-count " leihs groups <<<")
+          updated-groups)))))
 
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)

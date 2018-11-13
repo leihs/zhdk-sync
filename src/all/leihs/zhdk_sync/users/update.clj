@@ -77,23 +77,25 @@
         total-count (count to-be-updated-users)]
     (def ^:dynamic *to-be-updated-users* to-be-updated-users)
     (loop [users to-be-updated-users
+           updated-users []
            bar (progrock/progress-bar total-count)]
       (if-let [user (first users)]
-        (do
-          (when show-progress (progrock/print bar) (flush))
-          (if (:dry-run conf)
-            (Thread/sleep 50)
-            (leihs-api/update-user user conf))
-          (recur (rest users) (progrock/tick bar)))
-        (do
-          (when show-progress
-            (progrock/print (assoc bar
-                                   :done? true
-                                   :total  total-count
-                                   :progress total-count))
-            (flush)))))
-    (logging/info "<<< Updated " total-count " leihs users <<<")
-    to-be-updated-users))
+        (do (when show-progress (progrock/print bar) (flush))
+            (let [updated-user (if (:dry-run conf)
+                                 (do (Thread/sleep 50) {})
+                                 (:body (leihs-api/update-user user conf)))]
+              (recur (rest users) 
+                     (conj updated-users updated-user) 
+                     (progrock/tick bar))))
+        (do (when show-progress
+              (progrock/print (assoc bar
+                                     :done? true
+                                     :total  total-count
+                                     :progress total-count))
+              (flush))
+            (logging/info "<<< Updated " total-count " leihs users <<<")
+            
+            updated-users)))))
 
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)

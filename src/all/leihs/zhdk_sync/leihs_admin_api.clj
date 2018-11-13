@@ -83,18 +83,22 @@
 (defonce users (memoize _users))
 
 (defn add-user [user-attributes conf]
-  (let [base-url (-> conf :leihs-http-url presence)
-        token (-> conf :leihs-token presence) ]
-    (assert base-url)
-    (assert token)
-    (-> (http-client/post
-          (str base-url "/admin/users/")
-          {:accept :json
-           :content-type :json
-           :as :json
-           :basic-auth [token ""]
-           :body (cheshire/generate-string user-attributes)
-           }))))
+  (try 
+    (let [base-url (-> conf :leihs-http-url presence)
+          token (-> conf :leihs-token presence) ]
+      (assert base-url)
+      (assert token)
+      (http-client/post
+        (str base-url "/admin/users/")
+        {:accept :json
+         :content-type :json
+         :as :json
+         :basic-auth [token ""]
+         :body (cheshire/generate-string user-attributes)}))
+    (catch Exception e
+      (throw (ex-info "Error adding user"
+                      {:user-attributes user-attributes}
+                      e)))))
 
 (defn update-user [user-attributes conf]
   (let [id (-> user-attributes :id presence)
@@ -156,34 +160,42 @@
     *groups*))
 
 (defn add-group [group-attributes conf]
-  (let [base-url (-> conf :leihs-http-url presence)
-        token (-> conf :leihs-token presence) ]
-    (assert base-url)
-    (assert token)
-    (-> (http-client/post
-          (str base-url "/admin/groups/")
-          {:accept :json
-           :content-type :json
-           :as :json
-           :basic-auth [token ""]
-           :body (cheshire/generate-string group-attributes)
-           }))))
+  (try (let [base-url (-> conf :leihs-http-url presence)
+             token (-> conf :leihs-token presence) ]
+         (assert base-url)
+         (assert token)
+         (-> (http-client/post
+               (str base-url "/admin/groups/")
+               {:accept :json
+                :content-type :json
+                :as :json
+                :basic-auth [token ""]
+                :body (cheshire/generate-string group-attributes)
+                })))
+
+       (catch Exception e
+         (throw (ex-info "Error adding group "
+                         {:group-attributes group-attributes}
+                         e)))))
 
 (defn update-group [group-attributes conf]
-  (let [id (-> group-attributes :id presence)
-        base-url (-> conf :leihs-http-url presence)
-        token (-> conf :leihs-token presence)]
-    (assert id)
-    (assert base-url)
-    (assert token)
-    (-> (http-client/patch
-          (str base-url "/admin/groups/" id)
-          {:accept :json
-           :content-type :json
-           :as :json
-           :basic-auth [token ""]
-           :body (cheshire/generate-string group-attributes)
-           }))))
+  (try (let [id (-> group-attributes :id presence)
+             base-url (-> conf :leihs-http-url presence)
+             token (-> conf :leihs-token presence)]
+         (assert id)
+         (assert base-url)
+         (assert token)
+         (http-client/patch
+           (str base-url "/admin/groups/" id)
+           {:accept :json
+            :content-type :json
+            :as :json
+            :basic-auth [token ""]
+            :body (cheshire/generate-string group-attributes)}))
+       (catch Exception e
+         (throw (ex-info "Error updating group "
+                         {:group-attributes group-attributes}
+                         e)))))
 
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)

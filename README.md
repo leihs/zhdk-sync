@@ -4,7 +4,8 @@
 
 example:
 
-    ansible-playbook -v -i ../zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml
+    ansible-playbook -v -i ../zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml -e 'leihs_api_token=ABC'
+
 
 ### API Notes
 

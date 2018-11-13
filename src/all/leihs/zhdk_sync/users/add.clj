@@ -40,38 +40,41 @@
 
 (defn- add-users [conf to-be-added-zapi-users]
   (let [show-progress (:progress conf)
-        users (->> to-be-added-zapi-users
-                   (map zapi->leihs-attributes))
-        total-count (count users)]
-    (loop [users users
+        to-be-added-users (->> to-be-added-zapi-users
+                               (map zapi->leihs-attributes))
+        total-count (count to-be-added-users)]
+    (loop [to-be-added-users to-be-added-users
+           added-users []
            bar (progrock/progress-bar total-count)]
-      (if-let [user (first users)]
-        (do
-          (when show-progress (progrock/print bar) (flush))
-          (if (:dry-run conf)
-            (Thread/sleep 50)
-            (leihs-api/add-user user conf))
-          (recur (rest users) (progrock/tick bar)))
-        (do
-          (when show-progress
-            (progrock/print (assoc bar
-                                   :done? true
-                                   :total  total-count
-                                   :progress total-count))
-            (flush)))))
-    total-count))
+      (if-let [user (first to-be-added-users)]
+        (do (when show-progress (progrock/print bar) (flush))
+            (let [added-user
+                  (if (:dry-run conf)
+                    (do (Thread/sleep 50) {})
+                    (-> (leihs-api/add-user user conf) :body))]
+              (recur (rest to-be-added-users) 
+                     (conj added-users added-user)
+                     (progrock/tick bar))))
+        (do (when show-progress
+              (progrock/print (assoc bar
+                                     :done? true
+                                     :total  total-count
+                                     :progress total-count))
+              (flush))
+            added-users)))))
 
 
 
 (defn add-new-leihs-users [conf zapi-people leihs-users]
+  "Returns a seq of maps each representing one added users."
   (logging/info ">>> Adding new users to leihs >>>")
   (let [to-be-added-zapi-users (case (:leihs-sync-id conf)
                                  "email" (to-be-added-zapi-users-by-email zapi-people leihs-users)
                                  "org_id" (to-be-added-zapi-users-by-org-id zapi-people leihs-users))
-        total-count (count to-be-added-zapi-users)
-        show-progress (:progress conf)]
-    (add-users conf to-be-added-zapi-users)
-    (logging/info "<<< Added " total-count " users <<<")))
+        show-progress (:progress conf)
+        added-users (add-users conf to-be-added-zapi-users)]
+    (logging/info "<<< Added " (count added-users) " users <<<")
+    added-users))
 
 ;#### debug ###################################################################
 ;(logging-config/set-logger! :level :debug)
