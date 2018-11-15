@@ -9,12 +9,12 @@ BindsTo=leihs-admin.service
 Type=oneshot
 RemainAfterExit=false
 WorkingDirectory={{leihs_zhdk_sync_root_dir}}
-User={{leihs_zhdk_sync_user}} 
+User={{leihs_zhdk_sync_user}}
 Environment=LEIHS_HTTP_URL=http://localhost
 Environment=LEIHS_TOKEN={{leihs_api_token}}
 Environment=ZAPI_TOKEN={{zapi_key_prod}}
 Environment=PRTG_URL={{zydk_sync_prtg_url}}
-ExecStart=/usr/lib/jvm/java-9-openjdk-amd64/bin/java "-Xmx1014m" "-jar" "{{leihs_zhdk_sync_jar_path}}"
+ExecStart=/usr/bin/java "-Xmx1014m" "-jar" "{{leihs_zhdk_sync_jar_path}}"
 
 [Install]
 WantedBy=multi-user.target
