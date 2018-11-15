@@ -68,7 +68,9 @@
                    (filter identity)
                    (clojure.string/join ", "))
      :badge_id (or (get-zapi-field zapi-person [:leihs_temp :library_user_id])
-                   (get-zapi-field zapi-person [:leihs_temp :matriculation_number]))
+                   (some->
+                     (get-zapi-field zapi-person [:leihs_temp :matriculation_number])
+                     (clojure.string/replace #"-" "")))
      :city (get-zapi-field zapi-person [:personal_contact :city])
      :country (when country-code (get de-iso-codes country-code))
      :email (get-zapi-field zapi-person [:business_contact :email_main])
