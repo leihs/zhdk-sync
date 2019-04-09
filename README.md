@@ -37,7 +37,7 @@ and run via
 
 example:
 
-    ansible-playbook -v -i ../zhdk-inventory/developer-hosts --limit tom deploy/deploy_play.yml -e 'leihs_api_token=ABC'
+    ansible-playbook -v deploy/deploy_play.yml -i ../zhdk-inventory/prod-hosts-v5 -e 'prtg_url={{prod_v5_sync_prtg_url}}' -e 'leihs_api_token={{prod_v5_api_sync_token}}'
 
 
 ### ZAPI 
