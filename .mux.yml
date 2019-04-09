@@ -1,0 +1,14 @@
+name: LEIHS/v5/zhdk-sync
+windows:
+  2:
+    name: app
+    command: |
+      lein do clean, repl
+  5:
+    name: psql
+    command: |
+      psql -d leihs
+  8:
+    name: log
+    command: |
+      mkdir -p log && echo " " > log/debug.log && tail -f log/debug.log

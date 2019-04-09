@@ -50,10 +50,12 @@
            :content-type :json
            :as :json
            :basic-auth [token ""]
-           :body (cheshire/generate-string {:org_id nil
-                                            :email nil
-                                            :account_enabled false
-                                            :password_sign_in_enabled false})}))))
+           :body (cheshire/generate-string 
+                   {:email nil
+                    :login nil
+                    :org_id nil
+                    :account_enabled false
+                    :password_sign_in_enabled false })}))))
 
 (defn to-be-removed-leihs-users-by-email [zapi-people leihs-users]
   (let [zapi-email-addresses (zapi-lower-email-addresses zapi-people)]
