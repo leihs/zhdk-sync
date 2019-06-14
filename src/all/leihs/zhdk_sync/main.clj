@@ -3,8 +3,6 @@
   (:require
     [leihs.utils.core :refer [presence str keyword]]
 
-    [java-time]
-
     [leihs.zhdk-sync.groups.add :as group-sync-add]
     [leihs.zhdk-sync.groups.remove :as group-sync-remove]
     [leihs.zhdk-sync.groups.update :as group-sync-update]
@@ -37,7 +35,7 @@
   {:LEIHS_ESTIMATE_USER_COUNT 10894
    :LEIHS_ESTIMATE_GROUP_COUNT 1650
    :LEIHS_HTTP_URL "http://localhost:3211"
-   :ZAPI_ESTIMATE_PEOPLE_COUNT 4671 
+   :ZAPI_ESTIMATE_PEOPLE_COUNT 5200
    :ZAPI_ESTIMATE_USER_GROUPS_COUNT 1650
    :ZAPI_PAGE_LIMIT 100
    :ZAPI_HTTP_URL "https://zapi.zhdk.ch" 
