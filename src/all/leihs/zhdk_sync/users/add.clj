@@ -15,6 +15,8 @@
     [logbug.thrown :as thrown]
     ))
 
+(def add-defaults
+  {:password_sign_in_enabled false})
 
 (defn- to-be-added-zapi-users-by-email [zapi-people leihs-users]
   (let [to-be-added-email-addresses (clojure.set/difference
@@ -51,7 +53,9 @@
             (let [added-user
                   (if (:dry-run conf)
                     (do (Thread/sleep 50) {})
-                    (-> (leihs-api/add-user user conf) :body))]
+                    (-> (leihs-api/add-user 
+                          (merge add-defaults user) 
+                          conf) :body))]
               (recur (rest to-be-added-users) 
                      (conj added-users added-user)
                      (progrock/tick bar))))
