@@ -42,12 +42,17 @@ example:
 
 ### ZAPI 
 
-    curl -u $ZAPI_TOKEN_USER https://zapi.zhdk.ch/v1/documentation | json_pp
+    curl -u "$ZAPI_TOKEN:" https://zapi.zhdk.ch/v1/documentation | json_pp
 
-    curl -u $ZAPI_TOKEN_USER https://zapi.zhdk.ch/v1/person/documentation | json_pp
+    curl -u "$ZAPI_TOKEN:" https://zapi.zhdk.ch/v1/person/documentation | json_pp
 
-    curl -u $ZAPI_TOKEN_USER https://zapi.zhdk.ch/v1/person/?limit=1 | json_pp
+    curl -u "$ZAPI_TOKEN:" https://zapi.zhdk.ch/v1/person/?limit=1 | json_pp
 
-    curl -s -u "$ZAPI_TOKEN_USER:" 'https://zapi.zhdk.ch/v1/person/?limit=1&last_name=schank&fieldsets=basic,personal_contact,leihs_temp' | json_pp
+    curl -s -u "$ZAPI_TOKEN:" 'https://zapi.zhdk.ch/v1/person/?limit=1&last_name=schank&fieldsets=basic,personal_contact,leihs_temp,photos_badge' | json_pp
+
+    curl -s -u "$ZAPI_TOKEN:" 'https://zapi.zhdk.ch/v1/person-badge-photo/182749_0'
+
+    curl -H 'Accept: image/jpeg' -s -u "$ZAPI_TOKEN:" 'https://zapi.zhdk.ch/v1/person-badge-photo/6077_0' -o /tmp/img.jpg
+
 
 

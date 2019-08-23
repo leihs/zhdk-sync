@@ -6,7 +6,9 @@
   :dependencies [
                  [cheshire "5.8.0"]
                  [clj-http "3.9.0"]
+                 [com.twelvemonkeys.imageio/imageio-jpeg "3.4.2"]
                  [environ "1.1.0"]
+                 [fivetonine/collage "0.2.1"]
                  [log4j/log4j "1.2.17" :exclusions [javax.mail/mail javax.jms/jms com.sun.jdmk/jmxtools com.sun.jmx/jmxri]]
                  [logbug "4.2.2"]
                  [org.clojure/clojure "1.9.0"]

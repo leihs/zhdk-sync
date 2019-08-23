@@ -34,7 +34,7 @@
 (def defaults
   {:LEIHS_ESTIMATE_USER_COUNT 10894
    :LEIHS_ESTIMATE_GROUP_COUNT 1650
-   :LEIHS_HTTP_URL "http://localhost:3211"
+   :LEIHS_HTTP_URL "http://localhost:3220"
    :ZAPI_ESTIMATE_PEOPLE_COUNT 5200
    :ZAPI_ESTIMATE_USER_GROUPS_COUNT 1650
    :ZAPI_PAGE_LIMIT 100
@@ -63,8 +63,8 @@
     "Estimate of the group count"
     :default (env-or-default :LEIHS_ESTIMATE_GROUP_COUNT :parse-fn parse-int)
     :parse-fn parse-int]
-   ["-k" "--leihs-skip-count-check"
-    "Do not abort even if the deviation is > 10%; useful for intial sync."
+   ["-k" "--skip-count-checks"
+    "Do not abort even if the deviation is > 10%; useful for intial sync. or debugging"
     :default false]
    [nil "--leihs-token LEIHS_TOKEN"
     :default (env-or-default :LEIHS_TOKEN)
@@ -91,19 +91,11 @@
     :parse-fn parse-int]])
 
 
-(defn initial-sync? [users]
-  (->> users 
-       (filter #(re-matches #".*\|zhdk$" (or (:org_id %) ""))) 
-       first boolean))
 
 (defn run [options]
   (try 
     (let [zapi-people (zapi/people options)
           leihs-users (leihs-admin-api/users options)
-          options (assoc options :leihs-sync-id
-                         (if (initial-sync? leihs-users)
-                           "email"
-                           "org_id"))
           added-users (user-sync-add/add-new-leihs-users 
                         options zapi-people leihs-users)
           updated-users (user-sync-update/update-existing-leihs-users 

@@ -4,6 +4,7 @@
     [leihs.utils.core :refer [presence str keyword]]
     [leihs.zhdk-sync.leihs-admin-api :as leihs-api]
     [leihs.zhdk-sync.users.shared :refer :all]
+    [leihs.zhdk-sync.users.photo :as photo]
 
     [cheshire.core :as cheshire]
     [progrock.core :as progrock]
@@ -20,55 +21,33 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn needs-update? [zapi-attrs leihs-attrs]
-  (and leihs-attrs
-       (let [id (:id leihs-attrs)
-             leihs-attrs (dissoc leihs-attrs :id)]
-         (if (not= leihs-attrs zapi-attrs)
-           (do (logging/info "To be updated " id ": "
-                             (diff leihs-attrs zapi-attrs))
-               true)
-           false))))
 
-(defn to-be-updated-users-by-org-id [zapi-people leihs-users]
-  (let [leihs-users-org-id-map (->> leihs-users
-                                    (filter :org_id)
-                                    (map (fn [u] [(:org_id u)
-                                                  (select-keys u attribute-keys)]))
-                                    (into {}))]
-    (->> zapi-people
-         (map zapi->leihs-attributes)
-         (filter :org_id)
-         (filter (fn [zapi-attrs]
-                   (let [leihs-attrs (get leihs-users-org-id-map (:org_id zapi-attrs))]
-                     (needs-update? zapi-attrs leihs-attrs))))
-         (map #(assoc % :id (-> leihs-users-org-id-map
-                                (get (-> % :org_id))
-                                :id))))))
-
-(defn to-be-updated-users-by-email [zapi-people leihs-users]
-  (let [leihs-users-email-map (->> leihs-users
-                                   (filter :email)
-                                   (map (fn [u] [(clojure.string/lower-case (:email u))
-                                                 (select-keys u attribute-keys)]))
-                                   (into {}))]
-    (->> zapi-people
-         (map zapi->leihs-attributes)
-         (filter :email)
-         (filter (fn [zapi-attrs]
-                   (let [email (-> zapi-attrs :email clojure.string/lower-case)
-                         leihs-attrs (get leihs-users-email-map email)]
-                     (needs-update? zapi-attrs leihs-attrs))))
-         (map #(assoc % :id (-> leihs-users-email-map
-                                (get (-> % :email clojure.string/lower-case))
-                                :id))))))
+(defn to-be-updated-attributes [conf org_id->leihs-users zapi-user-attributes]
+  (when-let [leihs-user (get org_id->leihs-users (:org_id zapi-user-attributes))]
+    (some-> zapi-user-attributes
+            (#(diff leihs-user %))
+            second
+            (dissoc :img256_url :img32_url)
+            not-empty
+            (assoc :id (:id leihs-user))
+            (#(if (:img_digest %)
+                (assoc % 
+                       :img256_url (:img256_url zapi-user-attributes)
+                       :img32_url (:img32_url zapi-user-attributes))
+                %)))))
 
 
 (defn to-be-updated-users [conf zapi-people leihs-users]
-  (case (:leihs-sync-id conf)
-    "email" (to-be-updated-users-by-email zapi-people leihs-users)
-    "org_id" (to-be-updated-users-by-org-id zapi-people leihs-users)))
-
+  (let [org_id->leihs-users (->> leihs-users
+                                 (filter :org_id)
+                                 (map (fn [u] [(:org_id u) 
+                                               (dissoc u :img256_url :img32_url)]))
+                                 (into {}))]
+    (->> zapi-people
+         (map zapi->leihs-attributes)
+         (filter :org_id)
+         (map (partial to-be-updated-attributes conf org_id->leihs-users))
+         (filter identity))))
 
 (defn update-existing-leihs-users [conf zapi-people leihs-users]
   (logging/info ">>> Updating leihs users >>>")
@@ -83,7 +62,12 @@
         (do (when show-progress (progrock/print bar) (flush))
             (let [updated-user (if (:dry-run conf)
                                  (do (Thread/sleep 50) {})
-                                 (:body (leihs-api/update-user user conf)))]
+                                 (->> user
+                                      (#(if (:img_digest %)
+                                          (photo/update-images conf %)
+                                          %))
+                                      (leihs-api/update-user conf)
+                                      :body))]
               (recur (rest users) 
                      (conj updated-users updated-user) 
                      (progrock/tick bar))))
@@ -94,7 +78,6 @@
                                      :progress total-count))
               (flush))
             (logging/info "<<< Updated " total-count " leihs users <<<")
-            
             updated-users)))))
 
 ;#### debug ###################################################################

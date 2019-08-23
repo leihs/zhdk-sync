@@ -75,11 +75,9 @@
      :country (when country-code (get de-iso-codes country-code))
      :email (get-zapi-field zapi-person [:business_contact :email_main])
      :firstname (get-zapi-field zapi-person [:basic :first_name])
-     :img256_url (str "https://intern.zhdk.ch/?person/foto&width=256&height=256&id="
-                      evento-id "&ftype=1&pad=1")
-     :img32_url (str "https://intern.zhdk.ch/?person/foto&width=32&height=32&id="
-                     evento-id "&ftype=1&pad=1")
-     :img_digest nil
+     :img256_url (get-zapi-field zapi-person [:photos_badge :photos 0 :resource_link :links :self])
+     :img32_url (get-zapi-field zapi-person [:photos_badge :photos 0 :resource_link :links :self])
+     :img_digest (get-zapi-field zapi-person [:photos_badge :photos 0 :content_hash_sha1])
      :lastname (get-zapi-field zapi-person [:basic :last_name])
      :login (get-zapi-field zapi-person [:account :user_name])
      :org_id (str evento-id)

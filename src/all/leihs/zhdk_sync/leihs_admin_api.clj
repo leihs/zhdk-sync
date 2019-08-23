@@ -80,9 +80,10 @@
     (def ^:dynamic *users* (fetch-users base-url token estimate-count (:progress options)))
     *users*))
 
-(defonce users (memoize _users))
+;(defonce users (memoize _users))
+(def users _users)
 
-(defn add-user [user-attributes conf]
+(defn add-user [conf user-attributes]
   (try 
     (let [base-url (-> conf :leihs-http-url presence)
           token (-> conf :leihs-token presence) ]
@@ -100,7 +101,7 @@
                       {:user-attributes user-attributes}
                       e)))))
 
-(defn update-user [user-attributes conf]
+(defn update-user [conf user-attributes]
   (let [id (-> user-attributes :id presence)
         base-url (-> conf :leihs-http-url presence)
         token (-> conf :leihs-token presence)]
@@ -202,4 +203,3 @@
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns 'cider-ci.utils.shutdown)
 ;(debug/debug-ns *ns*)
-

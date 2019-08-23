@@ -22,6 +22,7 @@
         "leihs_temp"
         "personal_contact"
         "photo"
+        "photos_badge"
         "user_group"]
        (clojure.string/join "," )))
 
@@ -39,7 +40,12 @@
   (loop [data []
          page 0
          bar (progrock/progress-bar estimate-count)]
-    (let [query-params (assoc default-person-query-params :offset (* page limit))]
+    (let [query-params (assoc default-person-query-params 
+                              :offset (* page limit)
+                              ; only for prototyping or debugging: 
+                              ; :last_name "schank"
+                              ; :last_name "kmit"
+                              )]
       (when show-progress
         (progrock/print bar) (flush))
       (if-let [more-data (seq (-> (http-client/get
@@ -68,14 +74,16 @@
         estimate-count (-> options :zapi-estimate-people-count)
         limit (-> options :zapi-page-limit)
         people (fetch-people token limit estimate-count (:progress options))]
-    (when (deviates-by-more-than-tenth? (count people) estimate-count)
+    (when (and (-> options :skip-count-checks not) 
+               (deviates-by-more-than-tenth? (count people) estimate-count))
       (throw (ex-info "ZAPI expected people count deviates by more than a tenth."
                       {:people-count (count people)
                        :estimate-count estimate-count})))
     (reset! people* people)
     people))
 
-(defonce people (memoize _people))
+;(defonce people (memoize _people))
+(def people _people)
 
 
 ;;; user-group/user-group ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -120,7 +128,8 @@
         estimate-count (-> options :zapi-estimate-user-groups-count)
         limit (-> options :zapi-page-limit)
         user-groups (fetch-user-groups token limit estimate-count (:progress options))]
-    (when (deviates-by-more-than-tenth? (count user-groups) estimate-count)
+    (when (and (-> options :skip-count-checks not) 
+               (deviates-by-more-than-tenth? (count user-groups) estimate-count))
       (throw (ex-info "ZAPI expected user-groups count deviates by more than a tenth."
                       {:user-groups-count (count user-groups)
                        :estimate-count estimate-count})))

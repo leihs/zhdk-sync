@@ -4,6 +4,7 @@
     [leihs.utils.core :refer [presence str keyword]]
     [leihs.zhdk-sync.leihs-admin-api :as leihs-api]
     [leihs.zhdk-sync.users.shared :refer :all]
+    [leihs.zhdk-sync.users.photo :as photo]
 
     [cheshire.core :as cheshire]
     [progrock.core :as progrock]
@@ -17,16 +18,6 @@
 
 (def add-defaults
   {:password_sign_in_enabled false})
-
-(defn- to-be-added-zapi-users-by-email [zapi-people leihs-users]
-  (let [to-be-added-email-addresses (clojure.set/difference
-                                      (zapi-lower-email-addresses zapi-people)
-                                      (leihs-lower-email-addresses leihs-users))]
-    (->> zapi-people
-         (filter #(get-zapi-field % [:business_contact :email_main]))
-         (filter #(to-be-added-email-addresses
-                    (clojure.string/lower-case
-                      (get-zapi-field % [:business_contact :email_main])))))))
 
 (defn- to-be-added-zapi-users-by-org-id [zapi-people leihs-users]
   (let [zapi-org-ids (->> zapi-people (map :id) (filter identity) (map str) set)
@@ -53,9 +44,11 @@
             (let [added-user
                   (if (:dry-run conf)
                     (do (Thread/sleep 50) {})
-                    (-> (leihs-api/add-user 
-                          (merge add-defaults user) 
-                          conf) :body))]
+                    (->> user
+                         (merge add-defaults)
+                         (photo/update-images conf)
+                         (leihs-api/add-user conf)
+                         :body))]
               (recur (rest to-be-added-users) 
                      (conj added-users added-user)
                      (progrock/tick bar))))
@@ -72,9 +65,7 @@
 (defn add-new-leihs-users [conf zapi-people leihs-users]
   "Returns a seq of maps each representing one added users."
   (logging/info ">>> Adding new users to leihs >>>")
-  (let [to-be-added-zapi-users (case (:leihs-sync-id conf)
-                                 "email" (to-be-added-zapi-users-by-email zapi-people leihs-users)
-                                 "org_id" (to-be-added-zapi-users-by-org-id zapi-people leihs-users))
+  (let [to-be-added-zapi-users (to-be-added-zapi-users-by-org-id zapi-people leihs-users)
         show-progress (:progress conf)
         added-users (add-users conf to-be-added-zapi-users)]
     (logging/info "<<< Added " (count added-users) " users <<<")
