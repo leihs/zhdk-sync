@@ -17,7 +17,8 @@
     ))
 
 (def add-defaults
-  {:password_sign_in_enabled false})
+  {:password_sign_in_enabled false
+   :system_admin_protected true})
 
 (defn- to-be-added-zapi-users-by-org-id [zapi-people leihs-users]
   (let [zapi-org-ids (->> zapi-people (map :id) (filter identity) (map str) set)
