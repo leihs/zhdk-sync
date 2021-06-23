@@ -1,3 +1,6 @@
+**This repository is deprecated and supersseeded** by https://github.com/functional-swiss/leihs-sync
+
+
 ZHdK `users` and `groups` sync for _leihs_
 ==========================================
 
